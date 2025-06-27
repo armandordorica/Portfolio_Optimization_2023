@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 from dotenv import dotenv_values
 
 
-
 # Load .env enviroment variables
 
 
@@ -31,52 +30,56 @@ api = tradeapi.REST(
 
 
 class Stock: 
-    def __init__(self,ticker,start_dt,end_dt, timeframe = "1D"):
-        
-        self.ticker=ticker
-        self.start_dt =start_dt
+    def __init__(self, ticker, start_dt, end_dt, timeframe="1D"):
+        self.ticker = ticker
+        self.start_dt = start_dt
         self.end_dt = end_dt
         self.timeframe = timeframe
-        yf.pdr_override()
-
-        try:    
+        try:
             print("data from alpaca")
-            self.ticker_data = self.get_ticker_data_alpaca()    
-        except: 
-            print("Data from alpaca not available, pulling from yahoo")
+            self.ticker_data = self.get_ticker_data_alpaca()
+        except Exception as e:
+            print(f"Data from alpaca not available, pulling from yahoo. Reason: {e}")
             self.ticker_data = self.get_data_yahoo()
-    
+
     def get_ticker_data_alpaca(self):
-         
         ticker_data = api.get_bars(
-        self.ticker,
-        self.timeframe,
-        start=self.start_dt,
-        end=self.end_dt,
-        limit=1000,
+            self.ticker,
+            self.timeframe,
+            start=self.start_dt,
+            end=self.end_dt,
+            limit=1000,
         ).df
-        
         self.available_dates = [x.strftime('%Y-%m-%d') for x in ticker_data.index]
-        
-        self.first_min_date =[x for x in self.available_dates if x>=self.start_dt][0]
-        self.first_max_date =[x for x in self.available_dates if x<=self.end_dt][-1]
-        
+        self.first_min_date = [x for x in self.available_dates if x >= self.start_dt][0]
+        self.first_max_date = [x for x in self.available_dates if x <= self.end_dt][-1]
         ticker_data = ticker_data.loc[self.first_min_date: self.first_max_date]
-        ticker_data = ticker_data[['open','high', 'low', 'close', 'volume']]
-        ticker_data.columns = ['Open','High', 'Low', 'Close', 'Volume']
-        
+        ticker_data = ticker_data[['open', 'high', 'low', 'close', 'volume']]
+        ticker_data.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         ticker_data.index = [x.strftime('%Y-%m-%d') for x in ticker_data.index]
-        return ticker_data 
+        return ticker_data
 
-        
-    def get_data_yahoo(self): 
-        data = pdr.get_data_yahoo(self.ticker,
-            start=self.start_dt, end=self.end_dt)
-        data.drop(columns=['Adj Close'], inplace=True)
-        data.index = [x.strftime('%Y-%m-%d') for x in data.index]
-        
-        self.ticker = yf.Ticker(self.ticker)
+    def get_data_yahoo(self):
+        import yfinance as yf
+        try:
+            data = yf.download(self.ticker, start=self.start_dt, end=self.end_dt)
+            # Rename columns to match your schema
+            data = data.rename(columns={
+                'Open': 'Open',
+                'High': 'High',
+                'Low': 'Low',
+                'Close': 'Close',
+                'Volume': 'Volume',
+            })
+            # Only keep the columns you want, in the right order
+            data = data[['Close', 'High', 'Low', 'Open', 'Volume']]
+            # Optionally, set the column names to match your schema
+            data.columns = ['Price', 'High', 'Low', 'Open', 'Volume']
+            # Set index to string format
+            data.index = [x.strftime('%Y-%m-%d') for x in data.index]
+            return data
+        except Exception as e:
+            print(f"Yahoo Finance failed for {self.ticker}: {e}")
+            return pd.DataFrame()
 
-        return data
-            
-        
+

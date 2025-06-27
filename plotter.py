@@ -12,7 +12,6 @@ import os
 
 
 
-
 def plot_waterfall(input_cdf_df, input_categorical_var, input_title, fig_width=650, fig_height=500, max_pct=0.95): 
     top_pct = input_cdf_df[input_cdf_df['cum_pct']<=max_pct]
 
