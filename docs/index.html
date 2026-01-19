@@ -14,11 +14,30 @@
       li { margin: 0.35rem 0; }
       .card { border: 1px solid rgba(127,127,127,0.25); border-radius: 12px; padding: 16px; margin: 16px 0; }
       a { color: inherit; }
+      .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+      .btn {
+        display: inline-block;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(127,127,127,0.35);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .btn:hover { border-color: rgba(127,127,127,0.6); }
     </style>
   </head>
   <body>
     <h1>Portfolio Optimization Reports</h1>
     <div class="muted">Static HTML hosted via GitHub Pages.</div>
+
+    <div class="card">
+      <h2>Start here</h2>
+      <div class="muted">Interactive Plotly charts (best entry point).</div>
+      <div class="buttons">
+        <a class="btn" href="risk_return_scatter.html">Open: Risk/Return Scatter</a>
+        <a class="btn" href="sharpe_ratio.html">Open: Sharpe Ratio</a>
+      </div>
+    </div>
 
     <div class="card">
       <h2>How to add reports</h2>
@@ -31,7 +50,7 @@
 
     <div class="card">
       <h2>Reports</h2>
-      <div class="muted">Add links here as you create HTML files.</div>
+      <div class="muted">Direct links (useful for sharing).</div>
       <ul>
         <li><a href="risk_return_scatter.html">Risk/Return Scatter (Plotly)</a></li>
         <li><a href="sharpe_ratio.html">Sharpe Ratio (Plotly)</a></li>
