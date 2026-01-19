@@ -1,4 +1,5 @@
 canadian_etfs_parsed:
+- BRK
 - BXF.TO
 - CBD.TO
 - CBH.TO
@@ -135,6 +136,8 @@ canadian_etfs_parsed:
 - QMA.TO
 - QMY.TO
 - QQC.TO
+- QQC.F
+- QQQ
 - QUS.TO
 - QXM.TO
 - RBO.TO
@@ -151,7 +154,9 @@ canadian_etfs_parsed:
 - RWU.TO
 - RWW.TO
 - RXD.TO
+- RY
 - SVR.TO
+- TD
 - TLV.TO
 - TXF.TO
 - ULV.TO
@@ -169,8 +174,10 @@ canadian_etfs_parsed:
 - VEE.TO
 - VEF.TO
 - VFV.TO
+- VFV
 - VGG.TO
 - VGH.TO
+- VIU.TO
 - VRE.TO
 - VSB.TO
 - VSC.TO
@@ -180,6 +187,7 @@ canadian_etfs_parsed:
 - VXC.TO
 - VXM.TO
 - WXM.TO
+- XAW.TO
 - XBB.TO
 - XBM.TO
 - XCB.TO
@@ -198,6 +206,7 @@ canadian_etfs_parsed:
 - XEN.TO
 - XEU.TO
 - XFN.TO
+- XFT
 - XFR.TO
 - XGB.TO
 - XGD.TO
@@ -229,6 +238,7 @@ canadian_etfs_parsed:
 - XTR.TO
 - XUS.TO
 - XUT.TO
+- XUU.TO
 - XWD.TO
 - XXM.TO
 - YXM.TO
