@@ -60,7 +60,7 @@ def main() -> None:
     parser.add_argument("--horizons", default="6M,1Y,3Y,5Y", help="Comma-separated horizons")
     parser.add_argument(
         "--patterns",
-        default="VFV,XUU,VOO,BRK,QQ,XEF",
+        default="VFV,XUU,VOO,BRK,QQ,XEF,XEQ",
         help="Comma-separated substrings to select tickers (matched against Stock_name)",
     )
     parser.add_argument("--width", type=int, default=1000)
