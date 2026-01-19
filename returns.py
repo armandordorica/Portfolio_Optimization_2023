@@ -317,3 +317,109 @@ def get_stddev_table(
     out = pd.DataFrame(rows).set_index('Ticker')
     out = out[horizons]
     return out
+
+
+def _lookback_years(lookback: str) -> float:
+    value, unit = _parse_lookback(lookback)
+    if unit == 'D':
+        return value / 365.25
+    if unit == 'M':
+        return value / 12.0
+    if unit == 'Y':
+        return float(value)
+    raise ValueError('Unsupported lookback unit')
+
+
+def sharpe_ratio(
+    total_return: float,
+    stddev_daily: float,
+    horizon: str,
+    risk_free_rate_annual: float = 0.0,
+    trading_days: int = 252,
+) -> float:
+    """Compute an (annualized) Sharpe ratio from horizon return + daily volatility.
+
+    This matches the artifacts you already compute:
+      - `total_return`: cumulative return over the horizon (e.g., returns_wide['1Y'])
+      - `stddev_daily`: std dev of daily returns over the horizon (e.g., stddev_wide['1Y'])
+
+    We annualize by:
+      - annual_return = (1 + total_return)^(1/years) - 1
+      - annual_vol = stddev_daily * sqrt(trading_days)
+      - sharpe = (annual_return - risk_free_rate_annual) / annual_vol
+
+    Returns np.nan if inputs are missing/invalid.
+    """
+    if total_return is None or stddev_daily is None:
+        return np.nan
+
+    try:
+        total_return = float(total_return)
+        stddev_daily = float(stddev_daily)
+    except Exception:
+        return np.nan
+
+    if np.isnan(total_return) or np.isnan(stddev_daily) or stddev_daily <= 0:
+        return np.nan
+
+    years = _lookback_years(horizon)
+    if years <= 0:
+        return np.nan
+
+    if total_return <= -1:
+        return np.nan
+
+    annual_return = (1.0 + total_return) ** (1.0 / years) - 1.0
+    annual_vol = stddev_daily * np.sqrt(trading_days)
+    if annual_vol <= 0 or np.isnan(annual_vol):
+        return np.nan
+
+    return (annual_return - float(risk_free_rate_annual)) / annual_vol
+
+
+def get_sharpe_table(
+    prices: pd.DataFrame | dict,
+    tickers: list[str],
+    horizons: list[str],
+    most_recent_date: Optional[str] = None,
+    stock_col: str = 'Stock_name',
+    risk_free_rate_annual: float = 0.0,
+    trading_days: int = 252,
+) -> pd.DataFrame:
+    """Compute a wide Sharpe ratio table for multiple tickers and horizons.
+
+    Inputs intentionally mirror `get_returns_table` / `get_stddev_table`, with
+    two extra optional knobs for Sharpe: `risk_free_rate_annual` and `trading_days`.
+
+    Returns:
+        DataFrame indexed by ticker with columns equal to `horizons`.
+    """
+    returns_wide = get_returns_table(
+        prices=prices,
+        tickers=tickers,
+        horizons=horizons,
+        most_recent_date=most_recent_date,
+        stock_col=stock_col,
+    )
+    stddev_wide = get_stddev_table(
+        prices=prices,
+        tickers=tickers,
+        horizons=horizons,
+        most_recent_date=most_recent_date,
+        stock_col=stock_col,
+    )
+
+    sharpe_wide = pd.DataFrame(index=returns_wide.index)
+    for horizon in horizons:
+        sharpe_wide[horizon] = [
+            sharpe_ratio(
+                total_return=returns_wide.loc[ticker, horizon],
+                stddev_daily=stddev_wide.loc[ticker, horizon],
+                horizon=horizon,
+                risk_free_rate_annual=risk_free_rate_annual,
+                trading_days=trading_days,
+            )
+            for ticker in returns_wide.index
+        ]
+
+    return sharpe_wide[horizons]
