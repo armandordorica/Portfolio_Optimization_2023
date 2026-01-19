@@ -61,25 +61,43 @@ class Stock:
 
     def get_data_yahoo(self):
         import yfinance as yf
-        try:
-            data = yf.download(self.ticker, start=self.start_dt, end=self.end_dt)
-            # Rename columns to match your schema
-            data = data.rename(columns={
-                'Open': 'Open',
-                'High': 'High',
-                'Low': 'Low',
-                'Close': 'Close',
-                'Volume': 'Volume',
-            })
-            # Only keep the columns you want, in the right order
-            data = data[['Close', 'High', 'Low', 'Open', 'Volume']]
-            # Optionally, set the column names to match your schema
-            data.columns = ['Price', 'High', 'Low', 'Open', 'Volume']
-            # Set index to string format
-            data.index = [x.strftime('%Y-%m-%d') for x in data.index]
-            return data
-        except Exception as e:
-            print(f"Yahoo Finance failed for {self.ticker}: {e}")
-            return pd.DataFrame()
+
+        # Some tickers in config may appear without an exchange suffix (e.g. "VFV").
+        # If the initial download fails or returns no rows, retry with common suffixes.
+        tickers_to_try = [self.ticker]
+        if "." not in str(self.ticker):
+            tickers_to_try.append(f"{self.ticker}.TO")
+
+        last_error = None
+        for ticker_try in tickers_to_try:
+            try:
+                data = yf.download(ticker_try, start=self.start_dt, end=self.end_dt)
+                if data is None or data.empty:
+                    continue
+
+                # Rename columns to match your schema
+                data = data.rename(columns={
+                    'Open': 'Open',
+                    'High': 'High',
+                    'Low': 'Low',
+                    'Close': 'Close',
+                    'Volume': 'Volume',
+                })
+
+                # Only keep the columns you want, in the right order
+                data = data[['Close', 'High', 'Low', 'Open', 'Volume']]
+                data.columns = ['Price', 'High', 'Low', 'Open', 'Volume']
+
+                # Set index to string format
+                data.index = [x.strftime('%Y-%m-%d') for x in data.index]
+                return data
+            except Exception as e:
+                last_error = e
+
+        if last_error is not None:
+            print(f"Yahoo Finance failed for {self.ticker} (tried {tickers_to_try}): {last_error}")
+        else:
+            print(f"Yahoo Finance returned no data for {self.ticker} (tried {tickers_to_try})")
+        return pd.DataFrame()
 
 
