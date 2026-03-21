@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Stock Price Simulator</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            display: none;
+            padding: 15px;
+            background: #fee;
+            border-left: 4px solid #f44;
+            border-radius: 5px;
+            color: #c33;
+            margin-bottom: 20px;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-card.highlight {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        }
+
+        .summary-card.positive {
+            background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+        }
+
+        .summary-card.negative {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .summary-card h3 {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .summary-card .subvalue {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        #chart {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monte Carlo Stock Price Simulator</h1>
+            <p>Forecast future stock prices using geometric Brownian motion</p>
+        </div>
+
+        <div class="card">
+            <form id="simulationForm">
+                <div class="form-group">
+                    <label for="ticker">Stock Ticker Symbol</label>
+                    <input type="text" id="ticker" name="ticker" placeholder="e.g., AAPL, MSFT, TSLA" required>
+                    <small>Enter a valid stock ticker symbol</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="num_simulations">Number of Simulations</label>
+                        <input type="number" id="num_simulations" name="num_simulations" value="1000" min="100" max="10000" required>
+                        <small>Between 100 and 10,000</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="forecast_days">Forecast Days</label>
+                        <input type="number" id="forecast_days" name="forecast_days" value="252" min="1" max="1000" required>
+                        <small>Trading days (252 = 1 year)</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Run Simulation</button>
+            </form>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Running Monte Carlo simulation...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: #333;">Simulation Results: <span id="resultTicker"></span></h2>
+
+                <div class="summary-grid">
+                    <div class="summary-card highlight">
+                        <h3>Current Price</h3>
+                        <div class="value" id="currentPrice">-</div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Mean Forecast</h3>
+                        <div class="value" id="meanPrice">-</div>
+                        <div class="subvalue" id="meanReturn">-</div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Median Forecast</h3>
+                        <div class="value" id="medianPrice">-</div>
+                    </div>
+
+                    <div class="summary-card negative">
+                        <h3>VaR 5% (Worst Case)</h3>
+                        <div class="value" id="var5Price">-</div>
+                        <div class="subvalue" id="var5Return">-</div>
+                    </div>
+
+                    <div class="summary-card positive">
+                        <h3>95th Percentile</h3>
+                        <div class="value" id="var95Price">-</div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h3>Price Range</h3>
+                        <div class="value" style="font-size: 1.3em;" id="priceRange">-</div>
+                    </div>
+                </div>
+
+                <div id="chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('simulationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Hide previous results and errors
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+
+            // Get form data
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('/simulate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            const { ticker, summary, chart } = data;
+
+            // Update summary statistics
+            document.getElementById('resultTicker').textContent = ticker;
+            document.getElementById('currentPrice').textContent = '$' + summary.current_price.toFixed(2);
+            document.getElementById('meanPrice').textContent = '$' + summary.mean.toFixed(2);
+            document.getElementById('meanReturn').textContent = `(${summary.mean_return_pct >= 0 ? '+' : ''}${summary.mean_return_pct.toFixed(2)}%)`;
+            document.getElementById('medianPrice').textContent = '$' + summary.median.toFixed(2);
+            document.getElementById('var5Price').textContent = '$' + summary.var_5.toFixed(2);
+            document.getElementById('var5Return').textContent = `(${summary.var_5_return_pct >= 0 ? '+' : ''}${summary.var_5_return_pct.toFixed(2)}%)`;
+            document.getElementById('var95Price').textContent = '$' + summary.var_95.toFixed(2);
+            document.getElementById('priceRange').textContent = `$${summary.min.toFixed(2)} - $${summary.max.toFixed(2)}`;
+
+            // Plot chart
+            const chartData = JSON.parse(chart);
+            Plotly.newPlot('chart', chartData.data, chartData.layout, {responsive: true});
+
+            // Show results
+            document.getElementById('results').style.display = 'block';
+
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
